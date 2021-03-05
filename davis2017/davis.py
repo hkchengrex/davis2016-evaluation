@@ -8,10 +8,11 @@ from PIL import Image
 class DAVIS(object):
     SUBSET_OPTIONS = ['train', 'val', 'test-dev', 'test-challenge']
     TASKS = ['semi-supervised', 'unsupervised']
+    YEARS = ['2016', '2017', '2019']
     DATASET_WEB = 'https://davischallenge.org/davis2017/code.html'
     VOID_LABEL = 255
 
-    def __init__(self, root, task='unsupervised', subset='val', sequences='all', resolution='480p', codalab=False):
+    def __init__(self, root, task='unsupervised', subset='val', sequences='all', resolution='480p', codalab=False, year='2017'):
         """
         Class to read the DAVIS dataset
         :param root: Path to the DAVIS folder that contains JPEGImages, Annotations, etc. folders.
@@ -24,6 +25,8 @@ class DAVIS(object):
             raise ValueError(f'Subset should be in {self.SUBSET_OPTIONS}')
         if task not in self.TASKS:
             raise ValueError(f'The only tasks that are supported are {self.TASKS}')
+        if year not in self.YEARS:
+            raise ValueError(f'Year should be one of the following {self.YEARS}')
 
         self.task = task
         self.subset = subset
@@ -31,8 +34,13 @@ class DAVIS(object):
         self.img_path = os.path.join(self.root, 'JPEGImages', resolution)
         annotations_folder = 'Annotations' if task == 'semi-supervised' else 'Annotations_unsupervised'
         self.mask_path = os.path.join(self.root, annotations_folder, resolution)
-        year = '2019' if task == 'unsupervised' and (subset == 'test-dev' or subset == 'test-challenge') else '2017'
-        self.imagesets_path = os.path.join(self.root, 'ImageSets', year)
+        # year = '2019' if task == 'unsupervised' and (subset == 'test-dev' or subset == 'test-challenge') else '2017'
+        # self.imagesets_path = os.path.join(self.root, 'ImageSets', year)
+
+        self.year = year
+        if self.year == '2019' and not (task == 'unsupervised' and (subset == 'test-dev' or subset == 'test-challenge')):
+            raise ValueError("Set 'task' to 'unsupervised' and subset to 'test-dev' or 'test-challenge'")
+        self.imagesets_path = os.path.join(self.root, 'ImageSets', self.year)
 
         self._check_directories()
 
@@ -94,6 +102,10 @@ class DAVIS(object):
             tmp = np.ones((num_objects, *masks.shape))
             tmp = tmp * np.arange(1, num_objects + 1)[:, None, None, None]
             masks = (tmp == masks[None, ...])
+            masks = masks > 0
+        else:
+            # for single object evaluation (e.g. DAVIS2016)
+            masks = np.expand_dims(masks, axis=0)
             masks = masks > 0
         return masks, masks_void, masks_id
 

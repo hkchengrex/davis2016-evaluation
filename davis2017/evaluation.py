@@ -12,7 +12,7 @@ from scipy.optimize import linear_sum_assignment
 
 
 class DAVISEvaluation(object):
-    def __init__(self, davis_root, task, gt_set, sequences='all', codalab=False):
+    def __init__(self, davis_root, task, gt_set, sequences='all', codalab=False, year='2017'):
         """
         Class to evaluate DAVIS sequences from a certain set and for a certain task
         :param davis_root: Path to the DAVIS folder that contains JPEGImages, Annotations, etc. folders.
@@ -22,7 +22,9 @@ class DAVISEvaluation(object):
         """
         self.davis_root = davis_root
         self.task = task
-        self.dataset = DAVIS(root=davis_root, task=task, subset=gt_set, sequences=sequences, codalab=codalab)
+        # self.dataset = DAVIS(root=davis_root, task=task, subset=gt_set, sequences=sequences, codalab=codalab)
+        self.year = year
+        self.dataset = DAVIS(root=davis_root, task=task, subset=gt_set, sequences=sequences, codalab=codalab, year=self.year)
 
     @staticmethod
     def _evaluate_semisupervised(all_gt_masks, all_res_masks, all_void_masks, metric):
@@ -77,10 +79,13 @@ class DAVISEvaluation(object):
         if 'F' in metric:
             metrics_res['F'] = {"M": [], "R": [], "D": [], "M_per_object": {}}
 
+        separate_objects_masks = self.year != '2016'
+
         # Sweep all sequences
         results = Results(root_dir=res_path)
         for seq in tqdm(list(self.dataset.get_sequences())):
-            all_gt_masks, all_void_masks, all_masks_id = self.dataset.get_all_masks(seq, True)
+            # all_gt_masks, all_void_masks, all_masks_id = self.dataset.get_all_masks(seq, True)
+            all_gt_masks, all_void_masks, all_masks_id = self.dataset.get_all_masks(seq, separate_objects_masks)
             if self.task == 'semi-supervised':
                 all_gt_masks, all_masks_id = all_gt_masks[:, 1:-1, :, :], all_masks_id[1:-1]
             all_res_masks = results.read_masks(seq, all_masks_id)
