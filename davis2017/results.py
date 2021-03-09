@@ -23,7 +23,7 @@ class Results(object):
         mask_0 = self._read_mask(sequence, masks_id[0])
         masks = np.zeros((len(masks_id), *mask_0.shape))
         for ii, m in enumerate(masks_id):
-            masks[ii, ...] = self._read_mask(sequence, m)
+            masks[ii, ...] = (self._read_mask(sequence, m)>128).astype(np.uint8)
         num_objects = int(np.max(masks))
         tmp = np.ones((num_objects, *masks.shape))
         tmp = tmp * np.arange(1, num_objects + 1)[:, None, None, None]
